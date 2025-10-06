@@ -59,3 +59,103 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## API Sederhana
+
+### Base URL
+
+- Base: `/api`
+- Format: JSON
+- Autentikasi: Bearer Token (Laravel Sanctum) untuk endpoint yang dilindungi
+
+### Autentikasi
+
+- POST `/api/register`
+  - Body: `{ name, email, password }`
+  - Respon: `201 Created` dengan data pengguna
+
+- POST `/api/login`
+  - Body: `{ email, password }`
+  - Respon: `200 OK` `{ user, token }`
+
+- POST `/api/logout` (butuh Bearer Token)
+  - Respon: `200 OK`
+
+Contoh login via curl:
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"secret"}' \
+  http://localhost:8000/api/login
+```
+
+Gunakan token sebagai Bearer:
+
+```bash
+curl -H "Authorization: Bearer <TOKEN>" http://localhost:8000/api/courses
+```
+
+### Courses
+
+- GET `/api/courses` (publik)
+  - List kursus dengan pagination metadata
+
+- POST `/api/courses` (role: `lecturer`)
+  - Body: `{ name, description? }`
+  - Respon: `201 Created` detail kursus
+
+- PUT `/api/courses/{id}` (role: `lecturer`)
+  - Body: `{ name?, description? }`
+
+- DELETE `/api/courses/{id}` (role: `lecturer`)
+
+- POST `/api/courses/{id}/enroll` (role: `student`)
+  - Mendaftarkan mahasiswa ke kursus
+
+### Materials
+
+- POST `/api/materials` (role: `lecturer`)
+  - Form-Data: `course_id`, `title`, `file` (upload)
+  - Respon: `201 Created` `{ id, title, file_path }`
+
+- GET `/api/materials/{id}/download` (auth, akses sesuai otorisasi)
+  - Mengunduh file materi
+
+### Assignments
+
+- POST `/api/assignments` (role: `lecturer`)
+  - Body: sesuai validasi `StoreAssignmentRequest` (mis. `course_id`, `title`, `deadline`, `instructions?`)
+  - Respon: `201 Created` `{ id, title, deadline }`
+
+### Submissions
+
+- POST `/api/submissions` (role: `student`)
+  - Form-Data: `assignment_id`, `file` (upload)
+  - Respon: `201 Created` `{ id, file_path }`
+
+- POST `/api/submissions/{id}/grade` (role: `lecturer`)
+  - Body: `{ score }`
+  - Respon: `200 OK` `{ id, score }`
+
+### Forum Diskusi
+
+- POST `/api/discussions` (auth)
+  - Body: `{ course_id, content }`
+  - Respon: `201 Created` `{ id }`
+
+- POST `/api/discussions/{id}/replies` (auth)
+  - Body: `{ content }`
+  - Respon: `201 Created` `{ id }`
+
+### Reports (Read-Only)
+
+- GET `/api/reports/courses` (publik)
+- GET `/api/reports/assignments` (publik)
+- GET `/api/reports/students/{id}` (publik)
+
+### Catatan Role & Keamanan
+
+- Endpoint dalam grup `auth:sanctum` membutuhkan Bearer Token.
+- Sub-grup `role:lecturer` dan `role:student` membatasi akses sesuai peran pengguna.
+- Beberapa aksi menjalankan notifikasi email (tugas baru, penilaian) secara asinkron melalui job queue.
